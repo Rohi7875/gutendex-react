@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Local font-face - put your Montserrat files in public/fonts/ */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/Montserrat-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/Montserrat-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Theme variables */
+:root {
+  --primary: #5E56E7;
+  --page: #F8F7FF;
+  --graysoft: #F0F0F6;
+  --midgray: #A0A0A0;
+  --dark: #333333;
+}
+
+body {
+  font-family: 'Montserrat', ui-sans-serif, system-ui;
+  background-color: var(--page);
+  color: var(--dark);
+}
+
+/* Design tokens */
+.h1 { font-weight: 600; font-size: 48px; line-height: 1.05; }
+.h2 { font-weight: 600; font-size: 30px; line-height: 1.1; }
+.genre-text { font-size: 20px; }
+.body-text { font-size: 16px; }
+.small12 { font-size: 12px; }
+
+/* Component visuals */
+.genre-card {
+  box-shadow: 0 2px 5px rgba(211,209,238,0.5);
+  border-radius: 4px;
+}
+.book-card {
+  box-shadow: 0 2px 5px rgba(211,209,238,0.5);
+  border-radius: 8px;
+}
+.cover {
+  width: 114px;
+  height: 162px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
