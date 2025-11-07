@@ -132,7 +132,7 @@ GET /books?mime_type=image/&topic=FICTION&search=vampire
 
 - **Live App:** https://gutendex-react.vercel.app/
 - **GitHub Repo:** https://github.com/Rohi7875/gutendex-react
-- **API Source:** http://skunkworks.ignitesol.com:8000/
+- **API Source:** http://13.126.242.247/api/v1/books
 
 ---
 

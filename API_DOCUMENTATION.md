@@ -2,7 +2,7 @@
 
 ## 📡 Base URL
 ```
-http://skunkworks.ignitesol.com:8000
+http://13.126.242.247/api/v1/books
 ```
 
 ## 🔗 Endpoints
@@ -16,10 +16,10 @@ Retrieves a list of books from the Gutendex database.
 
 ```json
 {
-  "count": 67854,
-  "next": "http://skunkworks.ignitesol.com:8000/books?page=2",
+  "total_count": 67854,
+  "next": "http://13.126.242.247/api/v1/books?page=2",
   "previous": null,
-  "results": [
+  "books": [
     {
       "id": 84,
       "title": "Frankenstein; Or, The Modern Prometheus",

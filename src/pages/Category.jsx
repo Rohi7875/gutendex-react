@@ -5,71 +5,183 @@ import SearchIcon from '../assets/Search.svg'
 import CancelIcon from '../assets/Cancel.svg'
 
 // Use proxy API in production (HTTPS), direct API in development (HTTP)
-const BASE = typeof window !== 'undefined' && window.location.protocol === 'https:' 
-  ? '/api/books' 
-  : 'http://skunkworks.ignitesol.com:8000/books';
+const BASE = typeof window !== 'undefined' && window.location.protocol === 'https:'
+  ? '/api/books'
+  : 'http://13.126.242.247/api/v1/books'
 
-// Fix next URLs - extract query params from next URL
-const normalizeUrl = (url) => {
-  if (!url) return null
-  
-  try {
-    // Parse the URL to get query parameters
-    const urlObj = new URL(url)
-    const params = urlObj.searchParams
-    
-    // Build new URL with our BASE
-    return `${BASE}?${params.toString()}`
-  } catch (e) {
-    console.error('Error normalizing URL:', e)
-    return null
+const PER_PAGE = 25
+
+// Build request URL with supplied filters
+// Backend expects: topic, title, author, mime_type, page as separate query parameters
+// Multiple values per filter are comma-separated
+const buildUrl = ({ category, page, titleQuery, authorQuery }) => {
+  const params = new URLSearchParams()
+
+  if (category && category.trim()) {
+    params.set('topic', category.trim())
   }
+
+  if (titleQuery && titleQuery.trim()) {
+    params.set('title', titleQuery.trim())
+  }
+
+  if (authorQuery && authorQuery.trim()) {
+    params.set('author', authorQuery.trim())
+  }
+
+  // Requirement: Only return books with cover images
+  params.set('mime_type', 'image/jpeg,image/png,image/jpg')
+
+  if (page && page > 0) {
+    params.set('page', page.toString())
+  }
+
+  const url = `${BASE}?${params.toString()}`
+  console.log('API Request:', url)
+  return url
+}
+
+// Extract books from API response (supports both new and legacy shapes)
+const extractBooks = (payload) => {
+  if (!payload) return []
+  if (Array.isArray(payload.books)) return payload.books
+  if (Array.isArray(payload.results)) return payload.results
+  return []
+}
+
+// Extract total count from response
+const extractTotalCount = (payload) => {
+  if (!payload) return 0
+  if (typeof payload.total_count === 'number') return payload.total_count
+  if (typeof payload.count === 'number') return payload.count
+  return 0
+}
+
+// Generate a stable unique key for each book (avoids duplicate React keys)
+const getBookKey = (book) => {
+  const id = book.gutenberg_id || book.id || ''
+  const title = (book.title || '').trim().toLowerCase()
+  const authors = Array.isArray(book.authors)
+    ? book.authors.map(a => (a?.name || '').trim().toLowerCase()).join('|')
+    : ''
+  const firstLink = Array.isArray(book.links) && book.links.length > 0 ? (book.links[0].url || '') : ''
+  return `${id}::${title}::${authors}::${firstLink}`
 }
 
 export default function Category({ category, onBack }) {
   const [books, setBooks] = useState([])
-  const [count, setCount] = useState(null)
-  const [next, setNext] = useState(null)
+  const [totalCount, setTotalCount] = useState(null)
+  const [loadedCount, setLoadedCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
   const [error, setError] = useState(null)
   const sentinel = useRef(null)
 
-  const buildUrl = useCallback(() => {
-    const params = new URLSearchParams()
-    params.set('mime_type', 'image/')
-    if (category) params.set('topic', category)
-    if (debounced) params.set('search', debounced)
-    return `${BASE}?${params.toString()}`
-  }, [category, debounced])
+  const fetchPage = useCallback(async ({ pageToLoad, titleQuery, authorQuery }) => {
+    const url = buildUrl({ category, page: pageToLoad, titleQuery, authorQuery })
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    const payload = await res.json()
+    return {
+      books: extractBooks(payload),
+      total: extractTotalCount(payload),
+    }
+  }, [category])
+
+  const fetchBooks = useCallback(async ({ pageToLoad, reset = false }) => {
+    setLoading(true)
+    try {
+      const searchTerm = debounced.trim()
+      let responses = []
+
+      if (searchTerm) {
+        const [titleResult, authorResult] = await Promise.all([
+          fetchPage({ pageToLoad, titleQuery: searchTerm, authorQuery: '' }),
+          fetchPage({ pageToLoad, titleQuery: '', authorQuery: searchTerm }),
+        ])
+        responses = [titleResult, authorResult]
+      } else {
+        const result = await fetchPage({ pageToLoad, titleQuery: '', authorQuery: '' })
+        responses = [result]
+      }
+
+      const combinedMap = new Map()
+      let maxTotal = 0
+      let anyBooksReturned = false
+
+      responses.forEach(({ books: batchBooks, total }) => {
+        if (Array.isArray(batchBooks) && batchBooks.length > 0) {
+          anyBooksReturned = true
+          batchBooks.forEach(book => {
+            combinedMap.set(getBookKey(book), book)
+          })
+        }
+        maxTotal = Math.max(maxTotal, total || 0)
+      })
+
+      if (!anyBooksReturned) {
+        if (reset) {
+          setBooks([])
+          setLoadedCount(0)
+          setTotalCount(maxTotal)
+        }
+        setHasMore(false)
+        setError(null)
+        setLoading(false)
+        return
+      }
+
+      const combinedBooks = Array.from(combinedMap.values())
+
+      if (reset) {
+        setBooks(combinedBooks)
+        setLoadedCount(combinedBooks.length)
+      } else {
+        setBooks(prev => {
+          const mergedMap = new Map()
+          prev.forEach(book => mergedMap.set(getBookKey(book), book))
+          combinedBooks.forEach(book => mergedMap.set(getBookKey(book), book))
+          const merged = Array.from(mergedMap.values())
+          setLoadedCount(merged.length)
+          return merged
+        })
+      }
+
+      setTotalCount(maxTotal || combinedBooks.length)
+      const moreTitle = responses[0]?.total > pageToLoad * PER_PAGE
+      const moreAuthor = responses[1]?.total > pageToLoad * PER_PAGE
+      const shouldLoadMore = searchTerm ? (moreTitle || moreAuthor) : moreTitle
+      setHasMore(shouldLoadMore)
+      setError(null)
+      setPage(pageToLoad + 1)
+    } catch (e) {
+      console.error('Failed to load books:', e)
+      setError('Failed to load books. Please try again.')
+      if (reset) {
+        setBooks([])
+        setLoadedCount(0)
+        setTotalCount(0)
+      }
+      setHasMore(false)
+    } finally {
+      setLoading(false)
+    }
+  }, [debounced, fetchPage])
 
   useEffect(() => {
-    setBooks([]); setCount(null); setNext(null); setError(null)
-    const url = buildUrl()
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await fetch(url)
-        if (!res.ok) throw new Error(`API error: ${res.status}`)
-        const d = await res.json()
-        if (cancelled) return
-        setBooks(d.results || [])
-        setCount(d.count ?? 0)
-        setNext(normalizeUrl(d.next))
-        setError(null)
-      } catch (e) {
-        console.error('Failed to load books:', e)
-        setError('Failed to load books. Please try again.')
-        if (!cancelled) setBooks([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+    setBooks([])
+    setTotalCount(null)
+    setLoadedCount(0)
+    setPage(1)
+    setHasMore(true)
+    setError(null)
+    if (category) {
+      fetchBooks({ pageToLoad: 1, reset: true })
     }
-    load()
-    return () => (cancelled = true)
-  }, [buildUrl])
+  }, [category, debounced, fetchBooks])
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 450)
@@ -79,32 +191,15 @@ export default function Category({ category, onBack }) {
   useEffect(() => {
     if (!sentinel.current) return
     const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting && next && !loading) loadMore() })
+      entries.forEach(entry => {
+        if (entry.isIntersecting && hasMore && !loading) {
+          fetchBooks({ pageToLoad: page, reset: false })
+        }
+      })
     })
     obs.observe(sentinel.current)
     return () => obs.disconnect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [next, loading])
-
-  async function loadMore() {
-    if (!next || loading) return
-    setLoading(true)
-    try {
-      const res = await fetch(next)
-      if (!res.ok) throw new Error(`API error: ${res.status}`)
-      const d = await res.json()
-      setBooks(s => [...s, ...(d.results || [])])
-      setNext(normalizeUrl(d.next))
-      setError(null)
-    } catch (e) {
-      console.error('Failed to load more books:', e)
-      setError('Failed to load more books.')
-      // Clear next to stop infinite retry attempts
-      setNext(null)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [hasMore, loading, page, fetchBooks])
 
   return (
     <div>
@@ -114,7 +209,12 @@ export default function Category({ category, onBack }) {
           <span>Back</span>
         </button>
         <h3 className="h2">{category}</h3>
-        <div className="ml-auto text-sm text-midgray">{count === null ? '' : `${count} books`}</div>
+        <div className="ml-auto text-sm text-midgray">
+          {totalCount !== null ? `${totalCount} book${totalCount !== 1 ? 's' : ''}` : ''}
+          {totalCount !== null && loadedCount < totalCount && (
+            <span className="ml-2 text-xs">Loaded {loadedCount}</span>
+          )}
+        </div>
       </div>
 
       <div className="relative mb-4">
@@ -139,7 +239,9 @@ export default function Category({ category, onBack }) {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {books.map(b => <BookCard key={b.id} book={b} />)}
+        {books.map(book => (
+          <BookCard key={getBookKey(book)} book={book} />
+        ))}
       </div>
 
       <div ref={sentinel} style={{ height: 1 }} />

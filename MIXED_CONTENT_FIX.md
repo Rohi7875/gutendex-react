@@ -229,7 +229,7 @@ https://web.dev/why-https-matters/
 
 **Before:** HTTPS app → HTTP API ❌ BLOCKED
 
-**After:** HTTPS app → HTTPS proxy → HTTP API ✅ WORKS
+**After:** HTTPS app → HTTPS proxy (/api/books) → http://13.126.242.247/api/v1/books ✅ WORKS
 
 Your app is now **production-ready** and **secure**! 🚀
 

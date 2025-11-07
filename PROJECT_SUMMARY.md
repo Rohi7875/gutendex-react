@@ -189,7 +189,7 @@ http://skunkworks.ignitesol.com:8000/books?mime_type=image/&topic=FICTION&search
 |----------|-----|
 | **Live Application** | https://gutendex-react.vercel.app/ |
 | **GitHub Repository** | https://github.com/Rohi7875/gutendex-react |
-| **API Documentation** | See API_DOCUMENTATION.md |
+| **API Documentation** | See API_DOCUMENTATION.md (Base: http://13.126.242.247/api/v1/books) |
 | **Testing Guide** | See TESTING.md |
 
 ---
