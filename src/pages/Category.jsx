@@ -4,13 +4,26 @@ import BackIcon from '../assets/Back.svg'
 import SearchIcon from '../assets/Search.svg'
 import CancelIcon from '../assets/Cancel.svg'
 
-const BASE = 'http://skunkworks.ignitesol.com:8000'
+// Use proxy API in production (HTTPS), direct API in development (HTTP)
+const BASE = typeof window !== 'undefined' && window.location.protocol === 'https:' 
+  ? '/api/books' 
+  : 'http://skunkworks.ignitesol.com:8000/books';
 
-// Fix next URLs that point to localhost
+// Fix next URLs - extract query params from next URL
 const normalizeUrl = (url) => {
   if (!url) return null
-  // Replace any localhost URLs with the correct API server
-  return url.replace(/http:\/\/localhost:\d+/, BASE)
+  
+  try {
+    // Parse the URL to get query parameters
+    const urlObj = new URL(url)
+    const params = urlObj.searchParams
+    
+    // Build new URL with our BASE
+    return `${BASE}?${params.toString()}`
+  } catch (e) {
+    console.error('Error normalizing URL:', e)
+    return null
+  }
 }
 
 export default function Category({ category, onBack }) {
@@ -28,7 +41,7 @@ export default function Category({ category, onBack }) {
     params.set('mime_type', 'image/')
     if (category) params.set('topic', category)
     if (debounced) params.set('search', debounced)
-    return `${BASE}/books?${params.toString()}`
+    return `${BASE}?${params.toString()}`
   }, [category, debounced])
 
   useEffect(() => {
