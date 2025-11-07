@@ -1,6 +1,10 @@
 # Gutenberg Project - Implementation Summary
 
-## ✅ Project Status: COMPLETE
+## ✅ Project Status: COMPLETE & DEPLOYED
+
+## 🌐 Live Application
+
+**🚀 Live Demo:** [https://gutendex-react.vercel.app/](https://gutendex-react.vercel.app/)
 
 ### What Was Built
 
@@ -179,5 +183,16 @@ http://skunkworks.ignitesol.com:8000/books?mime_type=image/&topic=FICTION&search
 
 ---
 
-**Status:** Ready for testing and deployment! 🚀
+## 🔗 Project Links
+
+| Resource | URL |
+|----------|-----|
+| **Live Application** | https://gutendex-react.vercel.app/ |
+| **GitHub Repository** | https://github.com/Rohi7875/gutendex-react |
+| **API Documentation** | See API_DOCUMENTATION.md |
+| **Testing Guide** | See TESTING.md |
+
+---
+
+**Status:** ✅ LIVE & DEPLOYED! 🚀
 

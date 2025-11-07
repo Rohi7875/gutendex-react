@@ -2,6 +2,10 @@
 
 A beautiful React application for browsing books from the Gutendex API with custom Tailwind CSS design system.
 
+## 🌐 Live Demo
+
+**🚀 [View Live App](https://gutendex-react.vercel.app/)**
+
 ## ✨ Features
 
 - 📚 **10 Genre Categories** - Fiction, Drama, Humour, Politics, Philosophy, History, Adventure, Children, Poetry, Romance
@@ -119,6 +123,16 @@ GET /books?mime_type=image/&topic=FICTION&search=vampire
 - Background pattern adds visual appeal
 - No external dependencies except React and Tailwind
 - Clean, maintainable code structure
+
+---
+
+---
+
+## 🔗 Links
+
+- **Live App:** https://gutendex-react.vercel.app/
+- **GitHub Repo:** https://github.com/Rohi7875/gutendex-react
+- **API Source:** http://skunkworks.ignitesol.com:8000/
 
 ---
 
